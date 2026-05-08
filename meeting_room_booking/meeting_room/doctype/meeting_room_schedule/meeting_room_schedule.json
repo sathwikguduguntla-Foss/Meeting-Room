@@ -1,0 +1,70 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:schedule",
+ "creation": "2026-05-05 12:03:43.832681",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "disabled",
+  "schedule_details_section",
+  "schedule",
+  "time_slots"
+ ],
+ "fields": [
+  {
+   "default": "0",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  },
+  {
+   "fieldname": "schedule_details_section",
+   "fieldtype": "Section Break",
+   "label": "Schedule Details"
+  },
+  {
+   "fieldname": "schedule",
+   "fieldtype": "Data",
+   "label": "Schedule",
+   "unique": 1
+  },
+  {
+   "fieldname": "time_slots",
+   "fieldtype": "Table",
+   "label": "Time Slots",
+   "options": "Schedule Time Slot"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-05 12:21:14.421943",
+ "modified_by": "Administrator",
+ "module": "Meeting Room",
+ "name": "Meeting Room Schedule",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
+}

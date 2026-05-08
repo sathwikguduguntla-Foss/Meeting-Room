@@ -1,0 +1,137 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:room_name",
+ "creation": "2026-05-05 11:45:25.817079",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "details_section",
+  "room_name",
+  "room_id",
+  "column_break_pblf",
+  "status",
+  "capacity_section_section",
+  "capacity",
+  "google_calendar",
+  "column_break_ytyo",
+  "schedule",
+  "employee_and_user_details_section",
+  "employee",
+  "column_break_aclm",
+  "user"
+ ],
+ "fields": [
+  {
+   "fieldname": "details_section",
+   "fieldtype": "Section Break",
+   "label": "Details"
+  },
+  {
+   "fieldname": "room_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Room Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "room_id",
+   "fieldtype": "Data",
+   "label": "Room ID"
+  },
+  {
+   "fieldname": "column_break_pblf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "status",
+   "options": "Active\nDisabled",
+   "reqd": 1
+  },
+  {
+   "fieldname": "capacity_section_section",
+   "fieldtype": "Section Break",
+   "label": "Capacity and Appointments"
+  },
+  {
+   "fieldname": "capacity",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "capacity"
+  },
+  {
+   "fieldname": "employee_and_user_details_section",
+   "fieldtype": "Section Break",
+   "label": "Employee and User Details"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "column_break_aclm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "User",
+   "options": "User"
+  },
+  {
+   "fieldname": "column_break_ytyo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "schedule",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Schedule ",
+   "options": "Meeting Room Schedule"
+  },
+  {
+   "fieldname": "google_calendar",
+   "fieldtype": "Link",
+   "label": "Google Calendar",
+   "options": "Google Calendar"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-05 22:43:14.238960",
+ "modified_by": "Administrator",
+ "module": "Meeting Room",
+ "name": "Meeting Room",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
+}
