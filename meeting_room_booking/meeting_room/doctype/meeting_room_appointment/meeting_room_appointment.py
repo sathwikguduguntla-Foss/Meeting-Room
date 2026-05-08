@@ -98,7 +98,7 @@ class MeetingRoomAppointment(Document):
 # GET AVAILABLE SLOTS
 # Param: appointment_date (YYYY-MM-DD string)
 # =========================================
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def get_available_slots(
     meeting_room,
     appointment_date,
@@ -188,7 +188,7 @@ def get_available_slots(
 # Catches OverlapError per-slot so one
 # duplicate never blocks the whole batch.
 # =========================================
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def book_multiple_slots(
     meeting_room,
     appointment_date,

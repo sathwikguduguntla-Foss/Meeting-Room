@@ -390,7 +390,7 @@ frappe.ready(() => {
    ================================================================ */
 function loadMeetingRooms() {
     frappe.call({
-        method: "frappe.client.get_list",
+        method: "meeting_room_booking.api.get_meeting_rooms",
         args: { doctype: "Meeting Room", fields: ["name"], limit_page_length: 100 },
         callback(r) {
             const rooms  = r.message || [];
