@@ -20,7 +20,7 @@ class MeetingRoomAppointment(Document):
 
     # =========================================
     # VALIDATE OVERLAPS
-    # Checks exact datetime match only — no range
+    # Checks exact datetime match only
     # =========================================
     def validate_overlaps(self):
 
@@ -30,10 +30,10 @@ class MeetingRoomAppointment(Document):
         overlapping = frappe.db.exists(
             "Meeting Room Appointment",
             {
-                "meeting_room":        self.meeting_room,
+                "meeting_room": self.meeting_room,
                 "appointment_datetime": self.appointment_datetime,
-                "docstatus":           ["!=", 2],
-                "name":                ["!=", self.name]
+                "docstatus": ["!=", 2],
+                "name": ["!=", self.name]
             }
         )
 
@@ -60,10 +60,16 @@ class MeetingRoomAppointment(Document):
     def create_calendar_event(self):
 
         try:
+
+            event_subject = (
+                self.name1
+                or f"{self.meeting_room} Booking"
+            )
+
             existing_event = frappe.db.exists(
                 "Event",
                 {
-                    "subject":   f"{self.meeting_room} Booking",
+                    "subject": event_subject,
                     "starts_on": self.appointment_datetime
                 }
             )
@@ -72,22 +78,29 @@ class MeetingRoomAppointment(Document):
                 return
 
             event = frappe.get_doc({
-                "doctype":        "Event",
-                "subject":        self.name1 or f"{self.meeting_room} Booking",
-                "starts_on":      self.appointment_datetime,
-                "ends_on":        self.appointment_datetime,
-                "event_type":     "Public",
+                "doctype": "Event",
+                "subject": event_subject,
+                "starts_on": self.appointment_datetime,
+                "ends_on": self.appointment_datetime,
+                "event_type": "Public",
                 "event_category": "Meeting",
-                "status":         "Open",
-                "all_day":        0,
-                "color":          "#4285F4",
-                "description":    f"Meeting Room: {self.meeting_room}\nUser: {self.user}"
+                "status": "Open",
+                "all_day": 0,
+                "color": "#4285F4",
+                "description": (
+                    f"Meeting Room: {self.meeting_room}\n"
+                    f"User: {self.user}"
+                )
             })
 
-            event.insert(ignore_permissions=True)
+            event.insert(
+                ignore_permissions=True
+            )
+
             frappe.db.commit()
 
         except Exception:
+
             frappe.log_error(
                 frappe.get_traceback(),
                 "Meeting Room Event Creation Failed"
@@ -96,22 +109,38 @@ class MeetingRoomAppointment(Document):
 
 # =========================================
 # GET AVAILABLE SLOTS
-# Param: appointment_date (YYYY-MM-DD string)
+# Param:
+# appointment_date = YYYY-MM-DD
 # =========================================
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_available_slots(
     meeting_room,
     appointment_date,
     name=None
 ):
 
+    # =========================================
+    # LOGIN REQUIRED
+    # =========================================
+    if frappe.session.user == "Guest":
+        frappe.throw(
+            _("Please login to view available meeting room slots.")
+        )
+
     if not meeting_room or not appointment_date:
         return []
 
-    appointment_date = getdate(appointment_date)
-    weekday = appointment_date.strftime("%A")
+    appointment_date = getdate(
+        appointment_date
+    )
 
-    # get schedule linked to the room
+    weekday = appointment_date.strftime(
+        "%A"
+    )
+
+    # =========================================
+    # GET SCHEDULE LINKED TO ROOM
+    # =========================================
     schedule = frappe.db.get_value(
         "Meeting Room",
         meeting_room,
@@ -121,7 +150,9 @@ def get_available_slots(
     if not schedule:
         return []
 
-    # fetch time slots for the weekday
+    # =========================================
+    # GET TIME SLOTS FOR WEEKDAY
+    # =========================================
     slots = frappe.db.sql(
         """
         SELECT
@@ -131,52 +162,104 @@ def get_available_slots(
         FROM
             `tabSchedule Time Slot` slot
         WHERE
-            slot.parent  = %(schedule)s
+            slot.parent = %(schedule)s
             AND slot.day = %(weekday)s
-        ORDER BY slot.from_time
+        ORDER BY
+            slot.from_time
         """,
-        {"schedule": schedule, "weekday": weekday},
+        {
+            "schedule": schedule,
+            "weekday": weekday
+        },
         as_dict=True,
     )
 
-    # fetch already booked datetimes for this room+date
+    # =========================================
+    # GET BOOKED SLOTS
+    # =========================================
     booked_rows = frappe.db.sql(
         """
-        SELECT appointment_datetime
-        FROM   `tabMeeting Room Appointment`
-        WHERE  meeting_room               = %(meeting_room)s
-          AND  DATE(appointment_datetime) = %(date)s
-          AND  docstatus                 != 2
+        SELECT
+            appointment_datetime
+        FROM
+            `tabMeeting Room Appointment`
+        WHERE
+            meeting_room = %(meeting_room)s
+            AND DATE(appointment_datetime) = %(date)s
+            AND docstatus != 2
         """,
-        {"meeting_room": meeting_room, "date": appointment_date},
+        {
+            "meeting_room": meeting_room,
+            "date": appointment_date
+        },
         as_dict=True,
     )
 
     booked_datetimes = {
-        get_datetime(b["appointment_datetime"])
-        for b in booked_rows
+        get_datetime(
+            row["appointment_datetime"]
+        )
+        for row in booked_rows
     }
 
     available_slots = []
 
+    # =========================================
+    # BUILD AVAILABLE SLOT LIST
+    # =========================================
     for slot in slots:
 
         from_time = slot["from_time"]
 
-        # normalise timedelta → time
-        if isinstance(from_time, datetime.timedelta):
-            from_time = (datetime.datetime.min + from_time).time()
+        # -----------------------------------------
+        # timedelta -> time
+        # -----------------------------------------
+        if isinstance(
+            from_time,
+            datetime.timedelta
+        ):
+            from_time = (
+                datetime.datetime.min
+                + from_time
+            ).time()
 
-        # normalise string → time
-        if isinstance(from_time, str):
-            from_time = datetime.datetime.strptime(from_time, "%H:%M:%S").time()
+        # -----------------------------------------
+        # string -> time
+        # -----------------------------------------
+        if isinstance(
+            from_time,
+            str
+        ):
 
-        slot_datetime = datetime.datetime.combine(appointment_date, from_time)
-        is_booked     = slot_datetime in booked_datetimes
+            try:
+
+                from_time = datetime.datetime.strptime(
+                    from_time,
+                    "%H:%M:%S"
+                ).time()
+
+            except ValueError:
+
+                from_time = datetime.datetime.strptime(
+                    from_time,
+                    "%H:%M"
+                ).time()
+
+        # -----------------------------------------
+        # Combine date + time
+        # -----------------------------------------
+        slot_datetime = datetime.datetime.combine(
+            appointment_date,
+            from_time
+        )
+
+        is_booked = (
+            slot_datetime in booked_datetimes
+        )
 
         available_slots.append({
-            "from_time": str(from_time),   # "HH:MM:SS"
-            "disabled":  is_booked
+            "from_time": str(from_time),
+            "disabled": is_booked
         })
 
     return available_slots
@@ -184,11 +267,8 @@ def get_available_slots(
 
 # =========================================
 # BOOK MULTIPLE SLOTS
-# Accepts booking_name for the name1 field.
-# Catches OverlapError per-slot so one
-# duplicate never blocks the whole batch.
 # =========================================
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def book_multiple_slots(
     meeting_room,
     appointment_date,
@@ -199,50 +279,141 @@ def book_multiple_slots(
 
     import json
 
+    # =========================================
+    # LOGIN REQUIRED
+    # =========================================
+    if frappe.session.user == "Guest":
+        frappe.throw(
+            _("Please login before booking a meeting room.")
+        )
+
+    # =========================================
+    # CONVERT JSON STRING TO LIST
+    # =========================================
     if isinstance(slots, str):
+
         slots = json.loads(slots)
 
-    appointment_date = getdate(appointment_date)
+    if not slots:
+        frappe.throw(
+            _("Please select at least one slot.")
+        )
+
+    # =========================================
+    # DATE
+    # =========================================
+    appointment_date = getdate(
+        appointment_date
+    )
 
     errors = []
     booked = []
 
+    # =========================================
+    # BOOK EACH SELECTED SLOT
+    # =========================================
     for slot_time in slots:
 
-        # parse HH:MM:SS or HH:MM
+        # -----------------------------------------
+        # Parse HH:MM:SS
+        # -----------------------------------------
         try:
-            t = datetime.datetime.strptime(slot_time, "%H:%M:%S").time()
+
+            t = datetime.datetime.strptime(
+                slot_time,
+                "%H:%M:%S"
+            ).time()
+
         except ValueError:
-            t = datetime.datetime.strptime(slot_time, "%H:%M").time()
 
-        slot_datetime = datetime.datetime.combine(appointment_date, t)
+            # -------------------------------------
+            # Parse HH:MM
+            # -------------------------------------
+            try:
+
+                t = datetime.datetime.strptime(
+                    slot_time,
+                    "%H:%M"
+                ).time()
+
+            except ValueError:
+
+                errors.append(
+                    f"Invalid slot time {slot_time}."
+                )
+
+                continue
+
+        # =========================================
+        # COMBINE DATE + TIME
+        # =========================================
+        slot_datetime = datetime.datetime.combine(
+            appointment_date,
+            t
+        )
 
         try:
+
+            # =====================================
+            # CREATE APPOINTMENT
+            # =====================================
             doc = frappe.get_doc({
-                "doctype":              "Meeting Room Appointment",
-                "name1":               booking_name or "",
-                "meeting_room":         meeting_room,
+                "doctype": "Meeting Room Appointment",
+                "name1": booking_name or "",
+                "meeting_room": meeting_room,
                 "appointment_datetime": slot_datetime,
-                "duration_in_minutes":  int(duration_in_minutes),
-                "user":                 frappe.session.user
+                "duration_in_minutes": int(
+                    duration_in_minutes
+                ),
+                "user": frappe.session.user
             })
 
-            doc.insert(ignore_permissions=True)
+            # =====================================
+            # INSERT
+            # =====================================
+            doc.insert(
+                ignore_permissions=True
+            )
+
+            # =====================================
+            # SUBMIT
+            # =====================================
             doc.submit()
+
+            # =====================================
+            # COMMIT
+            # =====================================
             frappe.db.commit()
-            booked.append(str(slot_datetime))
+
+            booked.append(
+                str(slot_datetime)
+            )
 
         except OverlapError:
+
             frappe.db.rollback()
-            errors.append(f"Slot {slot_time} is already booked.")
+
+            errors.append(
+                f"Slot {slot_time} is already booked."
+            )
 
         except Exception:
+
             frappe.db.rollback()
+
             frappe.log_error(
                 frappe.get_traceback(),
                 "Meeting Room Slot Booking Failed"
             )
-            errors.append(f"Could not book slot {slot_time}.")
 
-    return {"booked": booked, "errors": errors}
+            errors.append(
+                f"Could not book slot {slot_time}."
+            )
 
+    # =========================================
+    # RETURN RESULT
+    # =========================================
+    return {
+        "booked": booked,
+        "errors": errors
+    }
